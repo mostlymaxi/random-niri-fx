@@ -1,0 +1,13 @@
+[package]
+name = "random-fx"
+version = "0.1.0"
+edition = "2021"
+description = "A thin line that lives along the edges of the screen"
+
+[[bin]]
+name = "random-fx"
+path = "src/main.rs"
+
+[dependencies]
+smithay-client-toolkit = { version = "0.21", default-features = false, features = [] }
+tiny-skia = "0.12"
