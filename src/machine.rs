@@ -7,7 +7,7 @@ use crate::config::Config;
 use crate::edge::Edge;
 use crate::ipc::Event;
 use crate::line::Line;
-use crate::motion::{Comet, CHASE};
+use crate::motion::{self, Comet, CHASE};
 use crate::pill::Mark;
 use crate::rng::Rng;
 use crate::signals::{Signals, Sources};
@@ -93,6 +93,7 @@ impl Machine {
             dt,
             screen,
             pill: self.config.clock,
+            sweep_speed: motion::peak_speed(screen.0, self.config.flight),
             age: t - self.entered_at,
             cycles: self.cycles,
             signals: &self.signals,

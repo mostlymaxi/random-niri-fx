@@ -3,6 +3,8 @@
 //! chases it with exponential decay, so the line stretches out while the
 //! head is fast and snaps shut as it slows down.
 
+use std::sync::OnceLock;
+
 use crate::ease::{approach, CubicBezier};
 
 const HEAD: CubicBezier = CubicBezier::new(0.65, 0.0, 0.35, 1.0);
@@ -13,6 +15,19 @@ const ENTRY: f32 = -0.03;
 /// Where the head stops, far enough past the right edge that it is still
 /// moving fast as it leaves the screen instead of easing to a halt on it.
 const EXIT: f32 = 1.3;
+
+/// The head's top speed in pixels per second, on an edge `length` pixels
+/// long with a flight of `flight` seconds.
+pub fn peak_speed(length: f32, flight: f32) -> f32 {
+    static PEAK_SLOPE: OnceLock<f32> = OnceLock::new();
+    let slope = *PEAK_SLOPE.get_or_init(|| {
+        const N: usize = 400;
+        (0..N)
+            .map(|i| (HEAD.at((i + 1) as f32 / N as f32) - HEAD.at(i as f32 / N as f32)) * N as f32)
+            .fold(0.0, f32::max)
+    });
+    slope * (EXIT - ENTRY) * length / flight
+}
 
 pub struct Comet {
     tail: f32,

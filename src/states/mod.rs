@@ -25,6 +25,8 @@ pub struct Ctx<'a> {
     pub screen: (f32, f32),
     /// The clock pill, if configured.
     pub pill: Option<Pill>,
+    /// The main sweep's top speed, in pixels per second.
+    pub sweep_speed: f32,
     /// Seconds since this state was entered.
     pub age: f32,
     /// Full cycles completed since this state was entered.
