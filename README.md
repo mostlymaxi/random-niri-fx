@@ -80,8 +80,10 @@ The palette blends between the given times and wraps around midnight.
 ## Development
 
     nix develop
-    cargo run --release           # daemon
-    cargo run --release -- zap    # send an event
+    cargo run --release             # daemon
+    cargo run --release -- zap      # test a zap
+    cargo run --release -- chime    # test the clock chime
+    cargo run --release -- --help   # all commands
 
 ### Adding a state
 

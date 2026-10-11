@@ -22,15 +22,40 @@ pub fn head(elapsed: f32, flight: f32) -> f32 {
     ENTRY + HEAD.at(elapsed / flight) * (EXIT - ENTRY)
 }
 
-/// The first, accelerating half of the head's curve, rescaled to run from 0
-/// to 1 in and out. It ends at `peak_slope()` times its average speed.
-pub fn accelerate(x: f32) -> f32 {
-    2.0 * HEAD.at(x.clamp(0.0, 1.0) / 2.0)
+/// Distance in pixels the head covers `elapsed` seconds into a flight of
+/// `flight` seconds on an edge `length` pixels long, except that it never
+/// eases off: past the curve's midpoint it holds its top speed.
+pub fn capped(elapsed: f32, length: f32, flight: f32) -> f32 {
+    let (half_time, half_way) = (flight / 2.0, (EXIT - ENTRY) * length / 2.0);
+    if elapsed < half_time {
+        (EXIT - ENTRY) * length * HEAD.at(elapsed / flight)
+    } else {
+        half_way + peak_speed(length, flight) * (elapsed - half_time)
+    }
+}
+
+/// Seconds until `capped` has covered `distance` pixels.
+pub fn capped_time(distance: f32, length: f32, flight: f32) -> f32 {
+    let (mut lo, mut hi) = (0.0, flight / 2.0);
+    let half_way = (EXIT - ENTRY) * length / 2.0;
+    if distance > half_way {
+        return hi + (distance - half_way) / peak_speed(length, flight);
+    }
+    // Still on the curve: solve for it.
+    for _ in 0..30 {
+        let mid = (lo + hi) / 2.0;
+        if capped(mid, length, flight) < distance {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+    lo
 }
 
 /// The head curve's steepest slope, at its middle: its top speed relative
 /// to its average speed.
-pub fn peak_slope() -> f32 {
+fn peak_slope() -> f32 {
     static PEAK: OnceLock<f32> = OnceLock::new();
     *PEAK.get_or_init(|| {
         const N: usize = 400;
@@ -97,5 +122,20 @@ mod tests {
             "tail should leave the screen, got {}",
             last.0
         );
+    }
+
+    #[test]
+    fn capped_follows_the_curve_then_holds_top_speed() {
+        let (length, flight) = (2560.0, 2.2);
+        let at = |t: f32| capped(t, length, flight);
+        let speed = |t: f32| (at(t + 0.001) - at(t)) / 0.001;
+        // Same as the real head while accelerating.
+        assert!((at(0.5) - (head(0.5, flight) - ENTRY) * length).abs() < 0.5);
+        // Then flat out at the top speed instead of easing off.
+        let top = peak_speed(length, flight);
+        assert!((speed(1.5) - top).abs() < 5.0 && (speed(2.5) - top).abs() < 5.0);
+        for d in [500.0, 4000.0] {
+            assert!((at(capped_time(d, length, flight)) - d).abs() < 0.5);
+        }
     }
 }
