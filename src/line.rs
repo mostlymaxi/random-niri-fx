@@ -16,7 +16,8 @@ pub const STEP: f32 = 4.0;
 
 #[derive(Clone)]
 pub struct Line {
-    /// Visible span as fractions of the edge length. Hidden when `head <= tail`.
+    /// Visible span as fractions of the edge length. The head may be on
+    /// either side of the tail; the line is hidden when they coincide.
     pub tail: f32,
     pub head: f32,
     pub color: Rgb,
@@ -72,7 +73,7 @@ impl Line {
     }
 
     pub fn is_visible(&self) -> bool {
-        self.head > self.tail && self.alpha > 0.0
+        self.head != self.tail && self.alpha > 0.0
     }
 
     /// Displacement at `along`, linearly interpolated between samples.
@@ -101,17 +102,18 @@ impl Line {
             return;
         }
         let (x0, x1) = (self.tail * length, self.head * length);
-        if x1 - x0 < 0.5 {
+        let (lo, hi) = (x0.min(x1), x0.max(x1));
+        if hi - lo < 0.5 {
             return;
         }
 
-        let mut xs = vec![x0];
-        let mut x = (x0 / STEP).floor() * STEP + STEP;
-        while x < x1 {
+        let mut xs = vec![lo];
+        let mut x = (lo / STEP).floor() * STEP + STEP;
+        while x < hi {
             xs.push(x);
             x += STEP;
         }
-        xs.push(x1);
+        xs.push(hi);
 
         // Position within the whole streak, 0 at its tail and 1 at its head.
         let (s0, s1) = self.span;

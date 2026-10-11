@@ -3,7 +3,7 @@
 //! bottom at once, and lights up the whole outline when the two meet.
 //! Without a configured `clock`, it is just the race.
 
-use super::collision::{Collision, IMPACT};
+use super::collision::Collision;
 use super::{Ctx, Overlay, State};
 use crate::color::Rgb;
 use crate::ease::CubicBezier;
@@ -24,8 +24,6 @@ const CHASE: f32 = 0.1;
 /// Seconds the lit outline holds, then fades.
 const HOLD: f32 = 0.4;
 const FADE: f32 = 1.2;
-/// When the whole chime is over, in seconds after it starts.
-const END: f32 = IMPACT + HANDOFF + TRACE + HOLD + FADE;
 
 pub struct Chime {
     race: Collision,
@@ -90,7 +88,7 @@ impl State for Chime {
     }
 
     fn update(&mut self, ctx: &Ctx, line: &mut Line) {
-        self.playing = ctx.age < END;
+        self.playing = ctx.age < Collision::impact(ctx) + HANDOFF + TRACE + HOLD + FADE;
         if ctx.cycles == 0 {
             // The race replaces this sweep.
             line.alpha = 0.0;
@@ -109,7 +107,7 @@ impl State for Chime {
             return;
         }
 
-        let t = ctx.age - IMPACT - HANDOFF;
+        let t = ctx.age - Collision::impact(ctx) - HANDOFF;
         if t < 0.0 {
             return;
         }

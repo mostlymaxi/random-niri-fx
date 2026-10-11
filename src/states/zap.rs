@@ -3,7 +3,7 @@
 //! the time-of-day tint. It also fires on its own now and then, in the
 //! line's own color.
 
-use super::collision::{Collision, FLARE, IMPACT};
+use super::collision::{Collision, FLARE};
 use super::{Ctx, Overlay, State};
 use crate::color::Rgb;
 use crate::ipc::Event;
@@ -96,7 +96,7 @@ impl State for Zap {
             line.alpha = 0.0;
             return;
         }
-        let cooled = (ctx.age - IMPACT - FLARE) / COOL;
+        let cooled = (ctx.age - Collision::impact(ctx) - FLARE) / COOL;
         line.color = self.color(ctx).lerp(ctx.signals.tint, cooled);
     }
 

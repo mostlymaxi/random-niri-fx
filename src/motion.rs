@@ -16,17 +16,34 @@ const ENTRY: f32 = -0.03;
 /// moving fast as it leaves the screen instead of easing to a halt on it.
 const EXIT: f32 = 1.3;
 
-/// The head's top speed in pixels per second, on an edge `length` pixels
-/// long with a flight of `flight` seconds.
-pub fn peak_speed(length: f32, flight: f32) -> f32 {
-    static PEAK_SLOPE: OnceLock<f32> = OnceLock::new();
-    let slope = *PEAK_SLOPE.get_or_init(|| {
+/// Head position as a fraction of the edge, `elapsed` seconds into a flight
+/// lasting `flight` seconds.
+pub fn head(elapsed: f32, flight: f32) -> f32 {
+    ENTRY + HEAD.at(elapsed / flight) * (EXIT - ENTRY)
+}
+
+/// The first, accelerating half of the head's curve, rescaled to run from 0
+/// to 1 in and out. It ends at `peak_slope()` times its average speed.
+pub fn accelerate(x: f32) -> f32 {
+    2.0 * HEAD.at(x.clamp(0.0, 1.0) / 2.0)
+}
+
+/// The head curve's steepest slope, at its middle: its top speed relative
+/// to its average speed.
+pub fn peak_slope() -> f32 {
+    static PEAK: OnceLock<f32> = OnceLock::new();
+    *PEAK.get_or_init(|| {
         const N: usize = 400;
         (0..N)
             .map(|i| (HEAD.at((i + 1) as f32 / N as f32) - HEAD.at(i as f32 / N as f32)) * N as f32)
             .fold(0.0, f32::max)
-    });
-    slope * (EXIT - ENTRY) * length / flight
+    })
+}
+
+/// The head's top speed in pixels per second, on an edge `length` pixels
+/// long with a flight of `flight` seconds.
+pub fn peak_speed(length: f32, flight: f32) -> f32 {
+    peak_slope() * (EXIT - ENTRY) * length / flight
 }
 
 pub struct Comet {
@@ -55,8 +72,7 @@ impl Comet {
     /// lasting `flight` seconds. Past the flight the head waits off-screen
     /// while the tail catches up.
     pub fn advance(&mut self, elapsed: f32, flight: f32, dt: f32) -> (f32, f32) {
-        let head = ENTRY + HEAD.at(elapsed / flight) * (EXIT - ENTRY);
-        self.follow(head, dt)
+        self.follow(head(elapsed, flight), dt)
     }
 }
 
